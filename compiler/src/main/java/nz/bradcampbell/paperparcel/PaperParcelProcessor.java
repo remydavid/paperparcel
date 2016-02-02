@@ -6,6 +6,7 @@ import static javax.lang.model.element.Modifier.PROTECTED;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 import static javax.lang.model.element.Modifier.TRANSIENT;
+import static javax.tools.StandardLocation.SOURCE_OUTPUT;
 import static nz.bradcampbell.paperparcel.internal.utils.TypeUtils.generateWrappedTypeName;
 import static nz.bradcampbell.paperparcel.internal.utils.TypeUtils.getFields;
 import static nz.bradcampbell.paperparcel.internal.utils.TypeUtils.getPackageName;
@@ -31,6 +32,7 @@ import nz.bradcampbell.paperparcel.internal.utils.AnnotationUtils;
 import nz.bradcampbell.paperparcel.internal.utils.PropertyUtils;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +61,7 @@ import javax.lang.model.type.WildcardType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
 
 /**
  * An annotation processor that creates Parcelable wrappers for all Kotlin data classes annotated with @PaperParcel
@@ -74,7 +77,7 @@ public class PaperParcelProcessor extends AbstractProcessor {
   private Types typeUtil;
   private Elements elementUtils;
 
-  private Set<String> processedParcels = new HashSet<>();
+  private Map<String, DataClass> processedParcels = new HashMap<>();
   private Set<DataClass> requiredParcels = new HashSet<>();
 
   @Override public synchronized void init(ProcessingEnvironment env) {
@@ -95,9 +98,26 @@ public class PaperParcelProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
-    if (annotations.isEmpty()) {
 
-      // Nothing to do
+    // When processing is over, generate a Kotlin file that contains all of the wrap() extension methods
+    if (roundEnvironment.processingOver()) {
+
+      try {
+        String packageName = "nz.bradcampbell.paperparcel";
+        FileObject extensions = filer.createResource(SOURCE_OUTPUT, packageName, "Extensions.kt");
+        try (Writer writer = extensions.openWriter()) {
+          generateExtensions(packageName, writer);
+        } catch (Exception e) {
+          try {
+            extensions.delete();
+          } catch (Exception ignored) {
+          }
+          throw e;
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("An error occurred writing the Kotlin Extensions file. " + e.getMessage(), e);
+      }
+
       return true;
     }
 
@@ -128,13 +148,43 @@ public class PaperParcelProcessor extends AbstractProcessor {
       try {
         generateParcelableWrapper(p).writeTo(filer);
       } catch (IOException e) {
-        throw new RuntimeException("An error occurred while writing to filer." + e.getMessage(), e);
+        throw new RuntimeException("An error occurred while writing to filer. " + e.getMessage(), e);
       }
     }
 
     requiredParcels.clear();
 
-    return true;
+    return false;
+  }
+
+  private void generateExtensions(String packageName, Writer writer) throws IOException {
+    // Package
+    writer.append("package ").append(packageName).append("\n\n");
+
+    // Imports
+    for (DataClass dataClass : processedParcels.values()) {
+      String dataClassPackageName = dataClass.getClassPackage();
+      if (!dataClassPackageName.equals(packageName)) {
+        String dataClassName = dataClass.getClassName().toString();
+        String wrappedDataClassName = dataClass.getWrapperClassName().toString();
+
+        writer.append("import ").append(dataClassName).append("\n");
+        writer.append("import ").append(wrappedDataClassName).append("\n");
+      }
+    }
+
+    // Whitespace
+    writer.append("\n");
+
+    // Extension functions
+    for (DataClass dataClass : processedParcels.values()) {
+      String dataClassName = ((ClassName) dataClass.getClassName()).simpleName();
+      String wrappedDataClassName = dataClass.getWrapperClassName().simpleName();
+
+      writer.append("fun ").append(dataClassName).append(".wrap() : ").append(wrappedDataClassName).append(" {\n");
+      writer.append("  ").append("return ").append(wrappedDataClassName).append(".wrap(this)\n");
+      writer.append("}\n\n");
+    }
   }
 
   private JavaFile generateParcelableWrapper(DataClass dataClass) throws IOException {
@@ -173,7 +223,7 @@ public class PaperParcelProcessor extends AbstractProcessor {
     String wrappedClassName = generateWrappedTypeName(typeElement, typeMirror);
 
     // Exit early if we have already created a parcel for this data class
-    if (processedParcels.contains(wrappedClassName)) return;
+    if (processedParcels.containsKey(wrappedClassName)) return;
 
     List<Property> properties = new ArrayList<>();
     List<TypeMirror> variableDependencies = new ArrayList<>();
@@ -226,9 +276,11 @@ public class PaperParcelProcessor extends AbstractProcessor {
       requiresClassLoader |= property.requiresClassLoader();
     }
 
-    requiredParcels.add(new DataClass(properties, classPackage, wrappedClassName, getterMethodMap,
-        TypeName.get(typeMirror), requiresClassLoader));
-    processedParcels.add(wrappedClassName);
+    DataClass dataClass = new DataClass(properties, classPackage, wrappedClassName, getterMethodMap,
+        TypeName.get(typeMirror), requiresClassLoader);
+
+    requiredParcels.add(dataClass);
+    processedParcels.put(wrappedClassName, dataClass);
 
     // Build parcel dependencies
     for (TypeMirror requiredParcel : variableDependencies) {

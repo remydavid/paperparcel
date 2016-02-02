@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.widget.TextView
+import nz.bradcampbell.paperparcel.wrap
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,6 +45,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
-        outState?.putParcelable("state", StateParcel.wrap(state))
+        outState?.putParcelable("state", state.wrap())
     }
 }
