@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import butterknife.Bind;
+import butterknife.ButterKnife;
 import nz.bradcampbell.paperparcel.PaperParcels;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+      ButterKnife.bind(this);
 
     if (savedInstanceState != null) {
       state = PaperParcels.unsafeUnwrap(savedInstanceState.getParcelable("state"));

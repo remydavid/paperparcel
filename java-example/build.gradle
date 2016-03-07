@@ -1,16 +1,21 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.neenbedankt.android-apt'
+apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 23
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        applicationId "nz.bradcampbell.paperparcel.javaexample"
+        applicationId "nz.bradcampbell.paperparcel.example"
         minSdkVersion 16
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        test.java.srcDirs += 'src/test/kotlin'
     }
 
     compileOptions {
@@ -23,16 +28,22 @@ android {
     }
 }
 
-dependencies {
-    compile deps.intellijAnnotations
+kapt {
+    generateStubs = true
+}
 
-    compile deps.appCompat 
+dependencies {
+    compile deps.appCompat
     compile deps.design
 
     compile 'com.jakewharton:butterknife:7.0.1'
 
-    compile project(':paperparcel')
-    apt project(':compiler')
+    compile 'com.github.grandstaish.paperparcel:paperparcel:1.0.0-beta3'
+    kapt 'com.github.grandstaish.paperparcel:compiler:1.0.0-beta3'
+
+    kapt project(':compiler')
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     testCompile deps.junit
     testCompile deps.compiletesting
@@ -41,8 +52,12 @@ dependencies {
 buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:1.5.0'
-        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.4'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
+}
+
+repositories {
+    maven { url "https://jitpack.io" }
 }
 
 tasks.withType(Test) {
