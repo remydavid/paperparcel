@@ -41,8 +41,6 @@ dependencies {
     compile 'com.github.grandstaish.paperparcel:paperparcel:1.0.0-beta3'
     kapt 'com.github.grandstaish.paperparcel:compiler:1.0.0-beta3'
 
-    kapt project(':compiler')
-
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     testCompile deps.junit
