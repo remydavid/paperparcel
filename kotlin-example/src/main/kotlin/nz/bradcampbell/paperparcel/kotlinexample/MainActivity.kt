@@ -1,5 +1,6 @@
 package nz.bradcampbell.paperparcel.kotlinexample
 
+import android.R
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
@@ -10,8 +11,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-  var state = State(0, Date())
-  val dateFormat = SimpleDateFormat("HH:mm")
+    var state = State(0, Date())
+    val dateFormat = SimpleDateFormat("HH:mm")
+
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -27,7 +29,6 @@ class MainActivity : AppCompatActivity() {
       // state = it.getParcelable<StateParcel>("state").contents;
     }
 
-    val toolbar = findViewById(R.id.toolbar) as Toolbar
     setSupportActionBar(toolbar)
 
     val plusButton = findViewById(R.id.add_button)

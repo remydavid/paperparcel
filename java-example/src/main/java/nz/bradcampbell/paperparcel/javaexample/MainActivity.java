@@ -7,16 +7,20 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.TextView;
 
-import nz.bradcampbell.paperparcel.PaperParcels;
-
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import butterknife.Bind;
+import nz.bradcampbell.paperparcel.PaperParcels;
+
 public class MainActivity extends AppCompatActivity {
   private State state = new State(0, new Date(), null);
   private DateFormat dateFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+  @Bind(R.id.toolbar)
+  Toolbar toolbar;
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -35,7 +39,6 @@ public class MainActivity extends AppCompatActivity {
       // state = wrapped != null ? wrapped.getContents() : null;
     }
 
-    Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
 
     View plusButton = findViewById(R.id.add_button);
